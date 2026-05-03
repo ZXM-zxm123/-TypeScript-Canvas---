@@ -349,7 +349,14 @@ export class GameEngine {
         for (const powerUp of this.powerUps) {
             if (!powerUp.active) continue;
 
-            const dx = (powerUp.x - this.cameraX) - this.player.x;
+            const screenX = powerUp.x - this.cameraX;
+            
+            // 检查道具是否在可见区域内，并且已经进入了可能被拾取的范围
+            if (screenX < -this.player.powerUps.magnetRange || screenX > this.canvas.width + this.player.powerUps.magnetRange) {
+                continue;
+            }
+
+            const dx = screenX - this.player.x;
             const dy = powerUp.y - this.player.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
