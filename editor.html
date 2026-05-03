@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关卡编辑器 - Level Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        select, input[type="text"], input[type="number"], input[type="color"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        input[type="color"] {
+            width: 50px;
+            height: 36px;
+            padding: 2px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        #editorCanvas {
+            border: 2px solid #333;
+            border-radius: 5px;
+            cursor: crosshair;
+        }
+
+        .stats {
+            background: #333;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .instructions {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+        }
+
+        .instructions h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .instructions li {
+            padding: 5px 0;
+            color: #666;
+        }
+
+        .instructions li::before {
+            content: "• ";
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗺️ 关卡编辑器</h1>
+
+    <div class="editor-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>工具</label>
+                <select id="toolSelect">
+                    <option value="select">选择</option>
+                    <option value="obstacle">障碍物</option>
+                    <option value="powerup">道具</option>
+                    <option value="platform">平台</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>类型</label>
+                <select id="typeSelect">
+                    <option value="pit">坑</option>
+                    <option value="wall">墙</option>
+                    <option value="speed">加速</option>
+                    <option value="magnet">磁铁</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>关卡名称</label>
+                <input type="text" id="levelName" value="自定义关卡">
+            </div>
+
+            <div class="control-group">
+                <label>难度 (1-5)</label>
+                <input type="number" id="levelDifficulty" value="1" min="1" max="5">
+            </div>
+
+            <div class="control-group">
+                <label>速度</label>
+                <input type="number" id="levelSpeed" value="5" min="1" max="20">
+            </div>
+
+            <div class="control-group">
+                <label>背景色</label>
+                <input type="color" id="bgColor" value="#87CEEB">
+            </div>
+
+            <div class="control-group">
+                <label>地面色</label>
+                <input type="color" id="groundColor" value="#228B22">
+            </div>
+        </div>
+
+        <canvas id="editorCanvas" width="800" height="400"></canvas>
+
+        <div class="stats" id="levelStats">
+            障碍物: 0 | 道具: 0 | 平台: 0
+        </div>
+
+        <div class="controls">
+            <button id="saveLevel" class="btn btn-success">保存关卡</button>
+            <button id="loadLevel" class="btn">加载关卡</button>
+            <button id="clearLevel" class="btn btn-danger">清空</button>
+        </div>
+
+        <div class="instructions">
+            <h3>使用说明</h3>
+            <ul>
+                <li>选择工具和类型，在画布上拖动来创建对象</li>
+                <li>坑 (pit): 玩家需要跳跃通过的地形缺口</li>
+                <li>墙 (wall): 需要跳跃躲避的垂直障碍</li>
+                <li>加速 (speed): 拾取后获得临时速度提升</li>
+                <li>磁铁 (magnet): 拾取后自动吸引附近道具</li>
+                <li>平台: 可供站立的安全区域</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module" src="./editor.js"></script>
+</body>
+</html>

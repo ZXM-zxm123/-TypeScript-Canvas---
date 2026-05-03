@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跑酷游戏 - Parkour Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+        }
+
+        #gameContainer {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        #gameCanvas {
+            display: block;
+            background: #87CEEB;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        #levelSelect {
+            display: none;
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        #levelSelect.visible {
+            display: block;
+        }
+
+        .level-btn {
+            display: block;
+            width: 200px;
+            padding: 15px 20px;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .level-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .level-name {
+            display: block;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .level-difficulty {
+            display: block;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        #leaderboard {
+            display: none;
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            min-width: 250px;
+        }
+
+        #leaderboard.visible {
+            display: block;
+        }
+
+        #leaderboard h2 {
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+
+        .rank {
+            font-weight: bold;
+            color: #667eea;
+            width: 30px;
+        }
+
+        .name {
+            flex: 1;
+            color: #333;
+        }
+
+        .score {
+            font-weight: bold;
+            color: #f5576c;
+        }
+
+        .no-scores {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        #highScoreDisplay {
+            color: #fff;
+            font-size: 18px;
+            margin-top: 15px;
+        }
+
+        .instructions {
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .instructions span {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 5px;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏃 跑酷 Runner</h1>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <div id="levelSelect"></div>
+        <div id="leaderboard"></div>
+    </div>
+
+    <div class="controls">
+        <button id="levelSelectBtn" class="btn">选择关卡</button>
+        <button id="leaderboardBtn" class="btn">排行榜</button>
+        <button id="restartBtn" class="btn">重新开始</button>
+    </div>
+
+    <div id="highScoreDisplay">最高分: 0</div>
+
+    <div class="instructions">
+        <span>空格/点击</span> 跳跃
+        <span>ESC</span> 暂停
+    </div>
+
+    <script type="module" src="./index.js"></script>
+</body>
+</html>

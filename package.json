@@ -1,0 +1,17 @@
+{
+  "name": "parkour-runner",
+  "version": "1.0.0",
+  "description": "TypeScript Canvas Parkour Runner Game with Wasm Collision Detection",
+  "type": "module",
+  "scripts": {
+    "prebuild": "node scripts/prebuild.js",
+    "build": "tsc",
+    "dev": "npm run build && npx serve .",
+    "server": "node server/index.js",
+    "start": "npm run server"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "serve": "^14.2.1"
+  }
+}
