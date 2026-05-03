@@ -15,6 +15,16 @@ export class GameEngine {
     private animationId: number = 0;
     private groundHeight: number = 50;
     private cameraX: number = 0;
+    private obstacleSpawnTimer: number = 0;
+    private powerUpSpawnTimer: number = 0;
+    private platformSpawnTimer: number = 0;
+    private lastObstacleX: number = 0;
+    private lastPowerUpX: number = 0;
+    private lastPlatformX: number = 0;
+    private readonly BASE_OBSTACLE_INTERVAL: number = 2.5; // 基础间隔（秒）
+    private readonly MIN_OBSTACLE_INTERVAL: number = 0.5; // 最小间隔（秒）
+    private readonly BASE_POWERUP_INTERVAL: number = 8; // 道具基础间隔
+    private readonly BASE_PLATFORM_INTERVAL: number = 12; // 平台基础间隔
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -62,7 +72,9 @@ export class GameEngine {
 
     private initLevel(level: GameLevel): void {
         this.currentLevel = level;
-        this.obstacles = level.obstacles.map(o => ({
+        
+        // 初始化预设障碍物，但只保留前几个用于开场
+        this.obstacles = level.obstacles.slice(0, 3).map(o => ({
             ...o,
             x: o.x,
             y: o.type === 'pit' ? 0 : (o.y || 0),
@@ -72,7 +84,13 @@ export class GameEngine {
             active: true,
             gapY: o.type === 'pit' ? 0 : undefined
         }));
+        
+        // 计算最后一个预设障碍物的位置
+        this.lastObstacleX = this.obstacles.length > 0 
+            ? Math.max(...this.obstacles.map(o => o.x)) + 400 
+            : 400;
 
+        // 初始化预设道具
         this.powerUps = level.powerUps.map(p => ({
             ...p,
             x: p.x,
@@ -83,7 +101,12 @@ export class GameEngine {
             active: true,
             duration: 5000
         }));
+        
+        this.lastPowerUpX = this.powerUps.length > 0
+            ? Math.max(...this.powerUps.map(p => p.x)) + 600
+            : 600;
 
+        // 初始化预设平台
         this.platforms = level.platforms.map(p => ({
             ...p,
             x: p.x,
@@ -93,6 +116,10 @@ export class GameEngine {
             velocity: { x: -level.speed, y: 0 },
             active: true
         }));
+        
+        this.lastPlatformX = this.platforms.length > 0
+            ? Math.max(...this.platforms.map(p => p.x)) + 800
+            : 800;
 
         this.groundHeight = 50;
         this.player.groundY = this.canvas.height - this.groundHeight - this.player.height;
@@ -110,6 +137,9 @@ export class GameEngine {
 
         this.cameraX = 0;
         this.gameState.distance = 0;
+        this.obstacleSpawnTimer = 0;
+        this.powerUpSpawnTimer = 0;
+        this.platformSpawnTimer = 0;
     }
 
     private bindControls(): void {
@@ -190,17 +220,104 @@ export class GameEngine {
         const speed = this.player.powerUps.speedBoost ? this.currentLevel.speed * 1.5 : this.currentLevel.speed;
         this.gameState.distance += speed * deltaTime * 10;
         this.gameState.score = Math.floor(this.gameState.distance);
+        
+        // 更新相机位置
+        this.cameraX += speed * deltaTime * 10;
 
         this.updatePlayer(deltaTime);
         this.updateObstacles(speed);
         this.updatePowerUps(speed);
         this.updatePlatforms(speed);
+        
+        // 动态生成新的障碍物、道具和平台
+        this.spawnObstacles(deltaTime, speed);
+        this.spawnPowerUps(deltaTime, speed);
+        this.spawnPlatforms(deltaTime, speed);
+        
         this.checkCollisions();
         this.checkPowerUpCollisions();
         this.updatePowerUpTimers(deltaTime);
-
-        if (this.cameraX > this.obstacles[this.obstacles.length - 1]?.x + 500) {
-            this.nextLevel();
+    }
+    
+    private spawnObstacles(deltaTime: number, speed: number): void {
+        this.obstacleSpawnTimer += deltaTime;
+        
+        // 速度与障碍物生成间隔的关联公式：生成间隔 = 基础间隔 / (速度系数)
+        const speedFactor = speed / 5; // 以基础速度5作为基准
+        let spawnInterval = this.BASE_OBSTACLE_INTERVAL / speedFactor;
+        
+        // 确保最小生成间隔
+        spawnInterval = Math.max(spawnInterval, this.MIN_OBSTACLE_INTERVAL);
+        
+        if (this.obstacleSpawnTimer >= spawnInterval) {
+            this.obstacleSpawnTimer = 0;
+            
+            // 随机生成坑或墙
+            const isPit = Math.random() < 0.5;
+            
+            const newObstacle: Obstacle = {
+                x: this.lastObstacleX,
+                y: 0,
+                width: isPit 
+                    ? 60 + Math.random() * 40 + this.currentLevel.difficulty * 10 // 坑的宽度随难度增加
+                    : 40 + Math.random() * 20 + this.currentLevel.difficulty * 5,
+                height: isPit 
+                    ? 0 
+                    : 60 + Math.random() * 40 + this.currentLevel.difficulty * 10, // 墙的高度随难度增加
+                velocity: { x: -speed, y: 0 },
+                active: true,
+                type: isPit ? 'pit' : 'wall',
+                gapY: isPit ? 0 : undefined
+            };
+            
+            this.obstacles.push(newObstacle);
+            this.lastObstacleX += 200 + Math.random() * 150 + 400 / speedFactor; // 调整障碍物间距
+        }
+    }
+    
+    private spawnPowerUps(deltaTime: number, speed: number): void {
+        this.powerUpSpawnTimer += deltaTime;
+        
+        if (this.powerUpSpawnTimer >= this.BASE_POWERUP_INTERVAL) {
+            this.powerUpSpawnTimer = 0;
+            
+            // 随机生成加速或磁铁道具
+            const isSpeed = Math.random() < 0.6;
+            
+            const newPowerUp: PowerUp = {
+                x: this.lastPowerUpX,
+                y: 250 + Math.random() * 100,
+                width: 30,
+                height: 30,
+                velocity: { x: -speed, y: 0 },
+                active: true,
+                type: isSpeed ? 'speed' : 'magnet',
+                duration: 5000
+            };
+            
+            this.powerUps.push(newPowerUp);
+            this.lastPowerUpX += 500 + Math.random() * 300;
+        }
+    }
+    
+    private spawnPlatforms(deltaTime: number, speed: number): void {
+        this.platformSpawnTimer += deltaTime;
+        
+        if (this.platformSpawnTimer >= this.BASE_PLATFORM_INTERVAL) {
+            this.platformSpawnTimer = 0;
+            
+            const newPlatform: Platform = {
+                x: this.lastPlatformX,
+                y: 300 + Math.random() * 80,
+                width: 80 + Math.random() * 60,
+                height: 20,
+                velocity: { x: -speed, y: 0 },
+                active: true,
+                type: 'floating'
+            };
+            
+            this.platforms.push(newPlatform);
+            this.lastPlatformX += 600 + Math.random() * 400;
         }
     }
 
@@ -248,33 +365,40 @@ export class GameEngine {
     }
 
     private updateObstacles(speed: number): void {
-        for (const obstacle of this.obstacles) {
+        for (let i = this.obstacles.length - 1; i >= 0; i--) {
+            const obstacle = this.obstacles[i];
             if (obstacle.active) {
                 obstacle.x -= speed;
-                if (obstacle.x + obstacle.width < -100) {
+                if (obstacle.x + obstacle.width < this.cameraX - 200) {
                     obstacle.active = false;
+                    // 清理已失效的障碍物以节省内存
+                    this.obstacles.splice(i, 1);
                 }
             }
         }
     }
 
     private updatePowerUps(speed: number): void {
-        for (const powerUp of this.powerUps) {
+        for (let i = this.powerUps.length - 1; i >= 0; i--) {
+            const powerUp = this.powerUps[i];
             if (powerUp.active) {
                 powerUp.x -= speed;
-                if (powerUp.x + powerUp.width < -100) {
+                if (powerUp.x + powerUp.width < this.cameraX - 200) {
                     powerUp.active = false;
+                    this.powerUps.splice(i, 1);
                 }
             }
         }
     }
 
     private updatePlatforms(speed: number): void {
-        for (const platform of this.platforms) {
+        for (let i = this.platforms.length - 1; i >= 0; i--) {
+            const platform = this.platforms[i];
             if (platform.active) {
                 platform.x -= speed;
-                if (platform.x + platform.width < -100) {
+                if (platform.x + platform.width < this.cameraX - 200) {
                     platform.active = false;
+                    this.platforms.splice(i, 1);
                 }
             }
         }
@@ -303,8 +427,9 @@ export class GameEngine {
         const groundLevel = this.canvas.height - this.groundHeight;
 
         if (playerBottom >= groundLevel && !this.player.isJumping) {
-            const pitStart = pit.x - this.cameraX;
-            const pitEnd = pitStart + pit.width;
+            const pitScreenX = pit.x - this.cameraX;
+            const pitStart = pitScreenX;
+            const pitEnd = pitScreenX + pit.width;
 
             if (this.player.x + this.player.width > pitStart && this.player.x < pitEnd) {
                 return true;
@@ -393,18 +518,6 @@ export class GameEngine {
         }
 
         this.saveScoreToServer();
-    }
-
-    private nextLevel(): void {
-        const nextLevelId = this.gameState.currentLevel + 1;
-        const nextLevelData = getLevelById(nextLevelId);
-
-        if (nextLevelData) {
-            this.initLevel(nextLevelData);
-            this.gameState.currentLevel = nextLevelId;
-        } else {
-            this.gameOver();
-        }
     }
 
     private saveHighScore(score: number): void {
